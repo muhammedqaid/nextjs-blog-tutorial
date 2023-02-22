@@ -1,0 +1,162 @@
+CSS modules allow you to locally scope CSS at the component-level by automatically creating unique class names. This allows you to use the same CSS class name in different files without worrying about class name collisions.
+Also with CSS modules you can stye application in a variety of ways: 
+    - Sass which allows you to import .css and .scss files
+    - PortCSS libraries like Tailwind CSS
+    - CSS-in-JS libraries such as styled-jsx
+Usage: Made top layer component called layout. Then made a css file (module) to style import. Have to import module into component and assign className 
+    - CSS MODULES must end in 'module.css'
+
+Default export of 'App.js' is a top level React component that wraps all the pages in application. 
+    - Can use this component to keep state when navigating between pages or to add global styles 
+    - When adding this, need to restart development server
+Can add global CSS files by importing them from pages/_app.js. Cannot import anywhere else 
+    - As it affects all elements on the page
+
+In Next.js lib folder hasn't got a specific name like pages (so can be called anything - usually 'lib' or 'utils' )
+
+2 types of pre-rendering
+    1 - static generation - generate HTML at build time. This is reused each request 
+    2 - server side rendering - generates HTML on each request 
+
+Can choose for each page which to do 
+
+
+FOR STATIC GENERATION: 
+export 'getStaticProps()' - 
+    - When export a page component, can also export an async function called getStaticProps
+    - used in pre-rendering to get the static data needed for rendering HTML
+    - Runs at build time and ...
+    - Inside function can fetch external data and send as props to the page
+    - DB example possible as getStaticProps only runs on the server-side! So isn't sent to browser
+    - In development (npm run dev / yarn dev): getStaticProps runs on every request
+    - In production, getStaticProps runs on buildtime - but this can be enhanced using the fallback key returned by getStaticPaths
+    - So can't use data that is only available during request time, e.g. query params or HTTP header
+    - Can only be exported from a page - not non-page files
+        - Because React needs to have all the required data before the page is rendered
+
+In 'utils/posts.js' we implemented a function to fetch data from the file system. However we could just as easiy have fetched data from another source like an external API endpoint
+    - e.g. API
+        export async function getSortedPostsData() {
+            // Instead of the file system,
+            // fetch post data from an external API endpoint
+            const res = await fetch('..');
+            return res.json();
+        }
+    - e.g. query DB
+        import someDatabaseSDK from 'someDatabaseSDK'
+
+        const databaseClient = someDatabaseSDK.createClient(...)
+
+        export async function getSortedPostsData() {
+        // Instead of the file system,
+        // fetch post data from a database
+        return databaseClient.query('SELECT posts...')
+        }
+    
+
+FOR SERVER-SIDE RENDERING: 
+export 'getServerSideProps' instead
+    - E.g.:
+        export async function getServerSideProps(context) {
+            return {
+                props: {
+                // props for your component
+                },
+            };
+        }
+    - As called on request time, its parameter 'context' contains request specific parameters
+
+
+CAN ALSO Do CLIENT-SIDE RENDERING
+    - Statically generate (pre-render) parts of page that do not require external data
+    - When page loads, fetch external data from the client using JavaScript and populate the remaining parts
+    - Works well for user dashboard pages for example - as it is a private, user-specific page where SEO is not relevant and does not need to be pre-rendered. The data is frequently updated, which requires request time data fetching 
+    - Next.js has a React hook for data fetching called SWR. 
+        - It is highly recommended, if fetching data on client side, it handles caching, revalidation, focus tracking, refetching on interval and more. 
+    - Example: 
+        import useSWR from 'swr';
+
+        function Profile() {
+           const  { data, error } = useSWR('/api/user', fetch);
+
+            if (error) return <div>failed to load</div>;
+            if (!data) return <div>loading...</div>;
+            return <div>hello {data.name}!</div>;
+        }
+
+Want to statically generate pages with dynamic routes 
+    - Pages that begin with '[' and end with ']' are dynamic routes in Next.js
+
+Just like getStaticProps, getStaticPaths can work in the same way in that it can fetch from any source.
+    - Eg. 
+        export async function getAllPostIds() {
+        // Instead of the file system,
+        // fetch post data from an external API endpoint
+        const res = await fetch('..');
+        const posts = await res.json();
+        return posts.map((post) => {
+            return {
+            params: {
+                id: post.id,
+            },
+            };
+        });
+        }
+Similarly, in development getStaticPaths runs on every request and in development only at build time
+
+Fallback - 
+    false - for any path not returned by getStaticPaths will result in 404 page
+    true - instead will serve a 'fallback' version of the page on the first request to such a path. In the background statically generate the requested path. 
+        Subsequent reqs will serve the generated page 
+    blocking - then new paths will be server-side rendered with getStaticProps and cahced for future requests so it only happens once per path
+
+Dynamic routes can be extended to catch all paths by adding three dots (...) inside the brackets. 
+    - E.g. 'pages/posts/[...id]' matches '/posts/a' but also '/posts/a/b' and '/posts/a/b/c' ect
+    - If this is used, getStaticPaths, must return an array as the value of id key like this: 
+        return [
+            {
+                params: {
+                // Statically Generates /posts/a/b/c
+                id: ['a', 'b', 'c'],
+                },
+            },
+            //...
+        ];
+    - And params.id also is an array in getStaticProps  
+        export async function getStaticProps({ params }) {
+            // params.id will be like ['a', 'b', 'c']
+        }
+
+To access the Next.js router can import 'useRouter' hook from 'next/router'
+
+To create custom 404 page create 'pages/404.js' 
+    - This is statically generated at build time
+
+
+API Routes lets you create an API endpoint inside Next.js app
+    - Can do so by creating a function inside the pages/api directory with the following format: 
+        export defualt function handler(req, res) {
+            // ...
+        }
+    - Can be deployed as serverless functions (aka lambdas) 
+
+    
+
+
+
+https://react-svgr.com/playground/ 
+    - Used to turn svg into jsx
+
+
+Rough notation wrapper - https://codesandbox.io/s/github/linkstrifer/react-rough-notation-playground
+    - https://roughnotation.com/ 
+
+https://www.freecodecamp.org/news/10-javascript-libraries-you-should-try/
+
+
+gray-matter
+    - To parse metadata i markdown file
+remark - remark-html 
+    - To render markdown content
+date-fns
+    - formatting date
